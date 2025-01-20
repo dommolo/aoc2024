@@ -1,5 +1,4 @@
-test.txt
-input.txt
+*.txt
 __pycache__
 .idea
-
+.vscode
