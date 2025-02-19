@@ -1,6 +1,7 @@
 import multiprocessing as mp
 import sys
 import time
+from collections import defaultdict
 
 
 def read_data(prod):
@@ -15,69 +16,43 @@ def read_data(prod):
     return [int(x) for x in data.split(' ')]
 
 
-def blink_item(val, n):
-    data = [val]
-    out = []
-    for _ in range(0, n):
-        for x in data:
-            if x == 0:
-                out.append(1)
-            elif len(str(x)) % 2 == 0:
-                sx = list(str(x))
-                half = int(len(sx)/2)
-                left = int(''.join(sx[:half]))
-                right = int(''.join(sx[half:]))
-                
-                out.append(left)
-                out.append(right)
-            else:
-                out.append(x * 2024)
-        data = out
-        out = []
+def blink_item(number, depth, cache):
+    if depth == 0:
+        return 1
     
-    return {'elements': data, 'size': len(data)}
+    k = (number, depth)
+    
+    if k in cache.keys():
+        res = cache[(number, depth)]
+    else:
+        if number == 0:
+            res = blink_item(1, depth-1, cache)
+        elif len(str(number)) % 2 == 0:
+            sn = str(number)
+            half = len(sn) // 2
+            left = int(sn[:half])
+            right = int(sn[half:])
+            
+            res = blink_item(left, depth-1, cache) + blink_item(right, depth-1, cache)
+        else:
+            res = blink_item(number * 2024, depth-1, cache)
+        
+        cache[(number, depth)] = res
+    
+    return res
     
 
-def evaluate(name, data, iterations, step, output):
-    acc = 0
-    queue = [(x, 0) for x in data]
-    n = 1
-    cc = 0
-    cache = dict()
+def evaluate(name: str, number: int, iterations: int, output):
+    cache = defaultdict()
     
     start_time = time.time()
+    print(f'[{name}] Proc{name} started', flush=True)
     
-    while len(queue) > 0:
-        x, d = queue.pop()
-        
-        if x in cache.keys():
-            new_data = cache[x]
-        else:
-            new_data = blink_item(x, step)
-            cache[x] = new_data
-        
-        if d + step == iterations:
-            acc += new_data['size']
-        else:
-            queue += [(x, d + step) for x in new_data['elements']]
-            
-        if n % 10000000 == 0:
-            recap = {}
-            for x in range(0, iterations, step):
-                if x not in recap.keys():
-                    recap[x] = 0
-                recap[x] = len([e for e in queue if e[1] == x])
-            print(f'[{name}] Recap {cc}: {recap}')
-            print(f'[{name}] Stones: {acc}')
-            n = 1
-            cc += 1
-        n += 1
-    
-    output.put(acc)
+    res = blink_item(number, iterations, cache)
+    output.put(res)
     
     time_elapsed = time.time() - start_time
-    
-    print(f'[{name}] Proc{name} count {acc} stones in {time_elapsed} seconds', flush=True)
+    print(f'[{name}] Proc{name} count {res} stones in {time_elapsed} seconds', flush=True)
     
 
 
@@ -93,12 +68,14 @@ if __name__ == '__main__':
     
     data = read_data(prod)
     iterations = 75
-    step_size = 25
     iterators = []
     outputs = mp.Queue()
     
-    for i, n in enumerate(data):
-        iterator = mp.Process(target=evaluate, args=(f'Proc{i}', [n], iterations, step_size, outputs))
+    start_time = time.time()
+    
+    for i, number in enumerate(data):
+        #evaluate(f'Proc{i}', number, iterations, outputs)
+        iterator = mp.Process(target=evaluate, args=(f'Proc{i}', number, iterations, outputs))
         iterators.append(iterator)
         iterator.start()
     
@@ -109,6 +86,9 @@ if __name__ == '__main__':
     while not outputs.empty():
         value = outputs.get()
         output += value
+    
+    time_elapsed = time.time() - start_time
+    print(f'Counted {output} stones in {time_elapsed} seconds', flush=True)
     
     
     print('Total stones: {}'.format(output))
