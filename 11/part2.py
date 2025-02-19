@@ -1,7 +1,6 @@
 import multiprocessing as mp
 import sys
 import time
-from collections import defaultdict
 
 
 def read_data(prod):
@@ -43,7 +42,7 @@ def blink_item(number, depth, cache):
     
 
 def evaluate(name: str, number: int, iterations: int, output):
-    cache = defaultdict()
+    cache = dict()
     
     start_time = time.time()
     print(f'[{name}] Proc{name} started', flush=True)
