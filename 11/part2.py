@@ -57,9 +57,9 @@ def evaluate(name: str, number: int, iterations: int, output):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        debug = sys.argv[1] == 'd'
-        test = sys.argv[1] == 't'
-        prod = sys.argv[1] == 'p'
+        debug = 'd' in sys.argv[1]
+        test = 't' in sys.argv[1]
+        prod = 'p' in sys.argv[1]
     else:
         debug = False
         test = False
@@ -73,10 +73,12 @@ if __name__ == '__main__':
     start_time = time.time()
     
     for i, number in enumerate(data):
-        #evaluate(f'Proc{i}', number, iterations, outputs)
-        iterator = mp.Process(target=evaluate, args=(f'Proc{i}', number, iterations, outputs))
-        iterators.append(iterator)
-        iterator.start()
+        if debug:
+            evaluate(f'Proc{i}', number, iterations, outputs)
+        else:
+            iterator = mp.Process(target=evaluate, args=(f'Proc{i}', number, iterations, outputs))
+            iterators.append(iterator)
+            iterator.start()
     
     for iterator in iterators:
         iterator.join()
